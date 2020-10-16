@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: certbot-driver
+Source: https://github.com/link-u/certbot-driver
+
+Files: *
+Copyright: 2020 Ryo Hirafuji <ryo.hirafuji@link-u.co.jp>
+License: MIT

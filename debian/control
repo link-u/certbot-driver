@@ -1,0 +1,14 @@
+Source: certbot-driver
+Section: utils
+Priority: optional
+Maintainer: Ryo Hirafuji <ryo.hirafuji@link-u.co.jp>
+Build-Depends: debhelper (>= 10)
+Standards-Version: 4.1.2
+Homepage: https://github.com/link-u/certbot-driver
+Vcs-Git: https://github.com/link-u/certbot-driver.git
+Vcs-Browser: https://github.com/link-u/certbot-driver.git
+
+Package: certbot-driver
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: CertBot Driver to use Route53 DNS Plugin

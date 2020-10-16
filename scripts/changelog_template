@@ -1,0 +1,5 @@
+certbot-driver (%VERSION%) stable; urgency=low
+
+  * Initial release - see https://github.com/link-u/certbot-driver/releases for more details
+
+ -- Ryo Hirafuji <ryo.hirafuji@link-u.co.jp>  %DATE%
