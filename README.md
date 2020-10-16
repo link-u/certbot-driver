@@ -77,7 +77,7 @@ Certificates are stores in the directory as in `/etc/letsencrypt`.
 
 You can use
  - `path/to/certs/live/example.com/privkey.pem`
- - `./live/example.com/fullchain.pem`
+ - `path/to/certs/live/example.com/fullchain.pem`
 
 In nginx, apache or other HTTP servers.
 
