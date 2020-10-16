@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -21,13 +22,15 @@ type Runner struct {
 	NetworkConfig   network.NetworkingConfig
 }
 
+var random = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 // from https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go
 func RandStringRunes(n int) string {
 	var runes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 	b := make([]rune, n)
 	l := len(runes)
 	for i := range b {
-		b[i] = runes[rand.Intn(l)]
+		b[i] = runes[random.Intn(l)]
 	}
 	return string(b)
 }
@@ -38,7 +41,6 @@ func (runner *Runner) Run() error {
 	if err != nil {
 		return err
 	}
-
 	{
 		result, err := cli.ImagePull(runner.Context, runner.ContainerConfig.Image, types.ImagePullOptions{})
 		if err != nil {
@@ -51,7 +53,7 @@ func (runner *Runner) Run() error {
 		}()
 	}
 
-	containerName := "certbot-" + RandStringRunes(64)
+	containerName := "certbot-" + RandStringRunes(16)
 	resp, err := cli.ContainerCreate(runner.Context, &runner.ContainerConfig, &runner.HostConfig, &runner.NetworkConfig, containerName)
 	if err != nil {
 		return err
@@ -61,7 +63,7 @@ func (runner *Runner) Run() error {
 	if err := cli.ContainerStart(runner.Context, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return nil
 	}
-	log.Info("Container started", zap.String("id", resp.ID), zap.String("name", containerName))
+	log.Info("Container started", zap.String("id", resp.ID), zap.String("name", containerName), zap.Strings("args", runner.ContainerConfig.Cmd))
 	running := true
 	defer func() {
 		if running {
@@ -78,24 +80,34 @@ func (runner *Runner) Run() error {
 				}
 			}
 		}
-		err := cli.ContainerRemove(runner.Context, resp.ID, types.ContainerRemoveOptions{})
-		if err != nil {
-			log.Warn("Failed to remove container", zap.String("id", resp.ID), zap.String("name", containerName), zap.Error(err))
+		if !runner.HostConfig.AutoRemove {
+			err := cli.ContainerRemove(runner.Context, resp.ID, types.ContainerRemoveOptions{})
+			if err != nil {
+				log.Warn("Failed to remove container", zap.String("id", resp.ID), zap.String("name", containerName), zap.Error(err))
+			}
+			log.Info("Container removed", zap.String("id", resp.ID), zap.String("name", containerName))
 		}
-		log.Info("Container removed", zap.String("id", resp.ID), zap.String("name", containerName))
+	}()
+
+	go func() {
+		out, err := cli.ContainerLogs(runner.Context, resp.ID, types.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+			Details:    true,
+			Follow:     true,
+		})
+		if err != nil {
+			log.Error("Failed to open log", zap.Error(err))
+			return
+		}
+		_, _ = io.Copy(os.Stdout, out)
 	}()
 
 	if _, err = cli.ContainerWait(runner.Context, resp.ID); err != nil {
 		return err
 	}
 	running = false
-
-	out, err := cli.ContainerLogs(runner.Context, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
-	if err != nil {
-		return nil
-	}
 	var buff bytes.Buffer
-	_, _ = io.Copy(os.Stdout, out)
 	log.Info("Executed", zap.ByteString("log", buff.Bytes()))
 	return nil
 }

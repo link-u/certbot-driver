@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -12,57 +11,55 @@ import (
 	"go.uber.org/zap"
 )
 
-func createCerts(config *Config, domains []string) {
+func createRunner(ctx context.Context, config *Config, args []string, envs []string) *bot.Runner {
 	log := zap.L()
 	certDir, err := filepath.Abs(config.Cert.Directory)
 	if err != nil {
 		log.Fatal("Failed to calculate abs path", zap.String("path", config.Cert.Directory), zap.Error(err))
 	}
 	certDir = filepath.Clean(certDir)
+	iamPath, err := filepath.Abs(config.Aws.IamPath)
+	if err != nil {
+		log.Fatal("Failed to calculate abs path", zap.String("path", config.Cert.Directory), zap.Error(err))
+	}
+	iamPath = filepath.Clean(iamPath)
+	iamDir := filepath.Dir(iamPath)
 	err = os.MkdirAll(certDir, 0777)
 	if err != nil {
 		log.Fatal("Failed to create cert dir", zap.String("path", config.Cert.Directory), zap.Error(err))
 	}
 
-	envs := []string{
-		fmt.Sprintf("AWS_CONFIG_FILE=%s", config.Aws.IamPath),
-	}
-	args := []string{
-		"run",
-		"--service-ports",
-		"--rm certbot",
-		"certonly",
-		"-vvv",
-		"--agree-tos",
-		fmt.Sprintf("--email %s", config.EmailAddress),
-		"--keep",
-		"--preferred-challenges dns-01",
-		"--non-interactive",
-		"--dns-route53",
-		"--dns-route53-propagation-seconds 30",
-	}
 	runner := bot.Runner{
-		Context: context.Background(),
+		Context: ctx,
 		ContainerConfig: container.Config{
 			Image: ImageName,
 			Cmd:   args,
 			Env:   envs,
 		},
 		HostConfig: container.HostConfig{
-			AutoRemove:  true,
+			AutoRemove:  false,
 			NetworkMode: "host",
 			Mounts: []mount.Mount{
 				{
-					Type:     "bind",
+					Type:     mount.TypeBind,
 					Source:   certDir,
-					Target:   "/etc/letsencrypt",
+					Target:   CertsMountPoint,
 					ReadOnly: false,
+					BindOptions: &mount.BindOptions{
+						Propagation: mount.PropagationShared,
+					},
+				},
+				{
+					Type:     mount.TypeBind,
+					Source:   iamDir,
+					Target:   IAMMountPoint,
+					ReadOnly: false,
+					BindOptions: &mount.BindOptions{
+						Propagation: mount.PropagationRShared,
+					},
 				},
 			},
 		},
 	}
-	err = runner.Run()
-	if err != nil {
-		log.Fatal("Failed to run container", zap.Error(err))
-	}
+	return &runner
 }

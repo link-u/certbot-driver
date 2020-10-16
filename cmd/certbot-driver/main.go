@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
@@ -10,7 +9,12 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-const ImageName = "docker.io/certbot/dns-route53:latest"
+const (
+	Version         = "v1.0.0"
+	ImageName       = "docker.io/certbot/dns-route53:latest"
+	IAMMountPoint   = "/etc/aws"
+	CertsMountPoint = "/etc/letsencrypt"
+)
 
 type CliConfig struct {
 	StandardLog bool
@@ -30,17 +34,7 @@ type Config struct {
 	Cli          CliConfig
 	Cert         CertConfig
 	Aws          AwsConfig
-}
-
-func usage(custom func()) {
-	_, _ = fmt.Fprintf(os.Stderr, "certbot-bot create [DOMAINS]...\n")
-	_, _ = fmt.Fprintf(os.Stderr, "certbot-bot renew\n")
-	flag.PrintDefaults()
-	if custom != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "\n")
-		custom()
-	}
-	os.Exit(-1)
+	DryRun       bool
 }
 
 func main() {
@@ -53,11 +47,15 @@ func main() {
 	var command string
 	var domains []string
 	{ // Flags
-		app = kingpin.New("certbot-bot", "Control certbot automatically").Version("v1.0.0")
+		app = kingpin.
+			New("certbot-driver", "Control certbot automatically").
+			Version(Version)
 		{
 			createCommand = app.Command("create", "create new certs")
 			createCommand.Flag("cli.standard-log", "Print logs in standard format, not in json").
 				BoolVar(&config.Cli.StandardLog)
+			createCommand.Flag("dry-run", "Run in dry-run mode").
+				BoolVar(&config.DryRun)
 			createCommand.Flag("cert.directory", "Directory to store the certs").
 				PlaceHolder("(path/to/cert)").
 				Required().
@@ -76,10 +74,16 @@ func main() {
 			renewCommand = app.Command("renew", "renew existing certs")
 			renewCommand.Flag("cli.standard-log", "Print logs in standard format, not in json").
 				BoolVar(&config.Cli.StandardLog)
+			renewCommand.Flag("dry-run", "Run in dry-run mode").
+				BoolVar(&config.DryRun)
 			renewCommand.Flag("cert.directory", "Directory to store the certs").
 				PlaceHolder("(path/to/cert)").
 				Required().
 				ExistingDirVar(&config.Cert.Directory)
+			renewCommand.Flag("email-address", "your email address").
+				PlaceHolder("(aoba@example.com)").
+				Required().
+				StringVar(&config.EmailAddress)
 			renewCommand.Flag("aws.iam", "Path to IAM").
 				PlaceHolder("(iam.conf)").
 				Required().
@@ -109,7 +113,7 @@ func main() {
 		log.Info("create new domains", zap.Strings("domains", domains))
 		createCerts(&config, domains)
 	case renewCommand.FullCommand():
-		log.Info("renew existing domains", zap.Strings("domains", domains))
+		log.Info("renew existing domains")
 		renewCerts(&config)
 	default:
 		log.Fatal("Unknown command", zap.String("command", command))

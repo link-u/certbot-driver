@@ -1,5 +1,5 @@
-certbot-bot: $(shell find . -type f -name *.go)
-	CGO_ENABLED=0 go build -o "$@" ./cmd/certbot-bot
+certbot-driver: $(shell find . -type f -name *.go)
+	CGO_ENABLED=0 go build -o "$@" ./cmd/certbot-driver
 	@if ! ldd "$@" 2> /dev/null; then echo "OK: not a dynamic executable!"; fi
 
 .PHONY: clean
