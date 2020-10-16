@@ -1,4 +1,8 @@
 # CertBot Driver (uses Route53 DNS)
+[![Build on Linux](https://github.com/link-u/certbot-driver/workflows/Build%20on%20Linux/badge.svg)](https://github.com/link-u/certbot-driver/actions?query=workflow%3A%22Build+on+Linux%22)
+[![Build on macOS](https://github.com/link-u/certbot-driver/workflows/Build%20on%20macOS/badge.svg)](https://github.com/link-u/certbot-driver/actions?query=workflow%3A%22Build+on+macOS%22)
+[![Build on Windows](https://github.com/link-u/certbot-driver/workflows/Build%20on%20Windows/badge.svg)](https://github.com/link-u/certbot-driver/actions?query=workflow%3A%22Build+on+Windows%22)  
+[![Build debian packages](https://github.com/link-u/certbot-driver/workflows/Build%20debian%20packages/badge.svg)](https://github.com/link-u/certbot-driver/actions?query=workflow%3A%22Build+debian+packages%22)
 
 It controls certbot to create and renew certs, using AWS Route 53 DNS Plugin.
 
