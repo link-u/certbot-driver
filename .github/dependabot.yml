@@ -7,7 +7,7 @@ updates:
     time: "02:00"
     timezone: "Asia/Tokyo"
   reviewers:
-    - "ledyba-z"
+    - "Kotaro-Shibata"
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
@@ -15,4 +15,4 @@ updates:
     time: "02:00"
     timezone: Asia/Tokyo
   reviewers:
-    - "ledyba-z"
+    - "Kotaro-Shibata"
